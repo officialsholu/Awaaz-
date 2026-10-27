@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">آواز ریکارڈر</string>
+    <string name="record">ریکارڈ</string>
+    <string name="stop">روکیں</string>
+    <string name="recording">ریکارڈنگ جاری ہے…</string>
+    <string name="saved">محفوظ ہو گئی</string>
+    <string name="language">زبان</string>
+    <string name="enhance">آواز بہتر کریں</string>
+    <string name="play">چلائیں</string>
+    <string name="share">شیئر</string>
+    <string name="delete">حذف کریں</string>
+    <string name="no_recordings">ابھی کوئی ریکارڈنگ نہیں ہے</string>
+    <string name="processing">کام جاری ہے…</string>
+    <string name="done">مکمل</string>
+    <string name="permission_needed">مائیکروفون کی اجازت درکار ہے</string>
+    <string name="preset_clean">صاف آواز</string>
+    <string name="preset_haram">حرم ہال</string>
+    <string name="preset_masjid">مسجد</string>
+    <string name="preset_naat">نعت اسٹوڈیو</string>
+    <string name="cat_namaz">نماز</string>
+    <string name="cat_quran">قرآن</string>
+    <string name="cat_naat">نعت</string>
+    <string name="cat_azan">اذان</string>
+    <string name="cat_other">دیگر</string>
+</resources>
