@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Awaaz Recorder</string>
+    <string name="record">Record</string>
+    <string name="stop">Stop</string>
+    <string name="recording">Recording…</string>
+    <string name="saved">Saved</string>
+    <string name="language">Language</string>
+    <string name="enhance">Enhance</string>
+    <string name="play">Play</string>
+    <string name="share">Share</string>
+    <string name="delete">Delete</string>
+    <string name="no_recordings">No recordings yet</string>
+    <string name="processing">Processing…</string>
+    <string name="done">Done</string>
+    <string name="permission_needed">Microphone permission is needed</string>
+    <string name="preset_clean">Clean voice</string>
+    <string name="preset_haram">Haram hall</string>
+    <string name="preset_masjid">Masjid</string>
+    <string name="preset_naat">Naat studio</string>
+    <string name="cat_namaz">Namaz</string>
+    <string name="cat_quran">Quran</string>
+    <string name="cat_naat">Naat</string>
+    <string name="cat_azan">Azan</string>
+    <string name="cat_other">Other</string>
+</resources>
