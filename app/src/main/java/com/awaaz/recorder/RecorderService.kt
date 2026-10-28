@@ -24,6 +24,7 @@ import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.text.SimpleDateFormat
+import java.util.Collections
 import java.util.Date
 import java.util.Locale
 
@@ -32,11 +33,28 @@ class RecorderService : Service() {
     companion object {
         const val ACTION_STOP = "stop"
         const val RATE = 44100
+        const val LEVELS_PER_SEC = 15
         @Volatile var recording = false
+        @Volatile var paused = false
         @Volatile var startTime = 0L
+        @Volatile var elapsedMs = 0L
+        @Volatile var levels = FloatArray(4096)
+        @Volatile var levelCount = 0
+        val marks: MutableList<Long> = Collections.synchronizedList(ArrayList<Long>())
 
         fun dir(ctx: Context): File =
             File(ctx.getExternalFilesDir(null), "Recordings").apply { mkdirs() }
+
+        fun addLevel(v: Float) {
+            var arr = levels
+            val c = levelCount
+            if (c >= arr.size) {
+                arr = arr.copyOf(arr.size * 2)
+                levels = arr
+            }
+            arr[c] = v
+            levelCount = c + 1
+        }
     }
 
     private var worker: Thread? = null
@@ -69,7 +87,7 @@ class RecorderService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val openPi = PendingIntent.getActivity(
-            this, 2, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
+            this, 2, Intent(this, RecordActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
         val n = NotificationCompat.Builder(this, "rec")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
@@ -85,12 +103,24 @@ class RecorderService : Service() {
 
         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val file = File(dir(this), "${cat}_$stamp.wav")
+        levels = FloatArray(4096)
+        levelCount = 0
+        elapsedMs = 0L
+        paused = false
+        marks.clear()
         recording = true
         startTime = System.currentTimeMillis()
         wake = (getSystemService(POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "awaaz:rec")
             .apply { acquire(6 * 60 * 60 * 1000L) }
         worker = Thread { record(file) }.also { it.start() }
+        try {
+            startActivity(
+                Intent(this, RecordActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        } catch (_: Exception) {
+        }
     }
 
     @Suppress("MissingPermission")
@@ -128,17 +158,31 @@ class RecorderService : Service() {
         val bytes = ByteArray(8192)
         var total = 0L
         var lastFix = System.currentTimeMillis()
+        val seg = RATE / LEVELS_PER_SEC
+        var segPeak = 0
+        var segN = 0
         ar.startRecording()
         while (recording) {
             val n = ar.read(buf, 0, buf.size)
             if (n < 0) break
             if (n == 0) continue
+            if (paused) continue
             for (i in 0 until n) {
-                bytes[2 * i] = (buf[i].toInt() and 0xFF).toByte()
-                bytes[2 * i + 1] = (buf[i].toInt() shr 8).toByte()
+                val v = buf[i].toInt()
+                bytes[2 * i] = (v and 0xFF).toByte()
+                bytes[2 * i + 1] = (v shr 8).toByte()
+                val a = if (v < 0) -v else v
+                if (a > segPeak) segPeak = a
+                segN++
+                if (segN >= seg) {
+                    addLevel(Math.sqrt(segPeak / 32768.0).toFloat())
+                    segPeak = 0
+                    segN = 0
+                }
             }
             raf.write(bytes, 0, n * 2)
             total += n * 2
+            elapsedMs = total * 1000L / (RATE * 2L)
             if (System.currentTimeMillis() - lastFix > 3000) {
                 fixHeader(raf, total)
                 lastFix = System.currentTimeMillis()
@@ -150,6 +194,12 @@ class RecorderService : Service() {
         agc?.release()
         fixHeader(raf, total)
         raf.close()
+        if (marks.isNotEmpty()) {
+            try {
+                val text = synchronized(marks) { marks.joinToString(",") }
+                File(file.path + ".marks").writeText(text)
+            } catch (_: Exception) {}
+        }
     }
 
     private fun fixHeader(raf: RandomAccessFile, len: Long) {
@@ -178,6 +228,7 @@ class RecorderService : Service() {
 
     private fun stopRec() {
         recording = false
+        paused = false
         worker?.join(2500)
         wake?.let { if (it.isHeld) it.release() }
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
