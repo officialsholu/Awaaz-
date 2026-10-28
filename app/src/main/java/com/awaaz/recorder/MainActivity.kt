@@ -5,11 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
@@ -40,235 +36,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-class IconView(c: Context, var kind: Int) : View(c) {
-    companion object {
-        const val SELECT = 0
-        const val SEARCH = 1
-        const val MORE = 2
-        const val PLAY = 3
-        const val PAUSE = 4
-        const val TRASH = 5
-        const val SHARE = 6
-        const val EDIT = 7
-        const val SPARK = 8
-        const val CLOSE = 9
-        const val SLIDERS = 10
-        const val SPEAKER = 11
-    }
-
-    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val path = Path()
-    private val light = 0xFFE6E6E6.toInt()
-    private val red = 0xFFE8504A.toInt()
-
-    override fun onDraw(c: Canvas) {
-        val w = width.toFloat()
-        val h = height.toFloat()
-        val d = resources.displayMetrics.density
-        p.strokeWidth = d * 2f
-        p.strokeCap = Paint.Cap.ROUND
-        p.strokeJoin = Paint.Join.ROUND
-        when (kind) {
-            SELECT -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                c.drawRoundRect(RectF(w * .16f, h * .16f, w * .84f, h * .84f), d * 4, d * 4, p)
-                path.reset()
-                path.moveTo(w * .31f, h * .52f)
-                path.lineTo(w * .45f, h * .66f)
-                path.lineTo(w * .70f, h * .36f)
-                c.drawPath(path, p)
-            }
-            SEARCH -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                c.drawCircle(w * .45f, h * .45f, w * .26f, p)
-                c.drawLine(w * .64f, h * .64f, w * .84f, h * .84f, p)
-            }
-            MORE -> {
-                p.style = Paint.Style.FILL
-                p.color = light
-                c.drawCircle(w * .5f, h * .22f, d * 2.3f, p)
-                c.drawCircle(w * .5f, h * .5f, d * 2.3f, p)
-                c.drawCircle(w * .5f, h * .78f, d * 2.3f, p)
-            }
-            PLAY -> {
-                p.style = Paint.Style.FILL
-                p.color = red
-                path.reset()
-                path.moveTo(w * .36f, h * .26f)
-                path.lineTo(w * .36f, h * .74f)
-                path.lineTo(w * .76f, h * .5f)
-                path.close()
-                c.drawPath(path, p)
-            }
-            PAUSE -> {
-                p.style = Paint.Style.FILL
-                p.color = red
-                c.drawRoundRect(RectF(w * .32f, h * .26f, w * .46f, h * .74f), d * 2, d * 2, p)
-                c.drawRoundRect(RectF(w * .54f, h * .26f, w * .68f, h * .74f), d * 2, d * 2, p)
-            }
-            TRASH -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                c.drawLine(w * .2f, h * .28f, w * .8f, h * .28f, p)
-                c.drawRoundRect(RectF(w * .4f, h * .16f, w * .6f, h * .28f), d * 2, d * 2, p)
-                path.reset()
-                path.moveTo(w * .27f, h * .28f)
-                path.lineTo(w * .32f, h * .82f)
-                path.lineTo(w * .68f, h * .82f)
-                path.lineTo(w * .73f, h * .28f)
-                c.drawPath(path, p)
-                c.drawLine(w * .42f, h * .4f, w * .42f, h * .7f, p)
-                c.drawLine(w * .58f, h * .4f, w * .58f, h * .7f, p)
-            }
-            SHARE -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                path.reset()
-                path.moveTo(w * .56f, h * .22f)
-                path.lineTo(w * .24f, h * .22f)
-                path.lineTo(w * .24f, h * .78f)
-                path.lineTo(w * .78f, h * .78f)
-                path.lineTo(w * .78f, h * .5f)
-                c.drawPath(path, p)
-                c.drawLine(w * .46f, h * .54f, w * .8f, h * .2f, p)
-                path.reset()
-                path.moveTo(w * .62f, h * .2f)
-                path.lineTo(w * .8f, h * .2f)
-                path.lineTo(w * .8f, h * .38f)
-                c.drawPath(path, p)
-            }
-            EDIT -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                path.reset()
-                path.moveTo(w * .56f, h * .22f)
-                path.lineTo(w * .24f, h * .22f)
-                path.lineTo(w * .24f, h * .78f)
-                path.lineTo(w * .78f, h * .78f)
-                path.lineTo(w * .78f, h * .5f)
-                c.drawPath(path, p)
-                p.strokeWidth = d * 3f
-                c.drawLine(w * .42f, h * .58f, w * .78f, h * .22f, p)
-            }
-            SPARK -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                path.reset()
-                path.moveTo(w * .5f, h * .15f)
-                path.quadTo(w * .5f, h * .5f, w * .85f, h * .5f)
-                path.quadTo(w * .5f, h * .5f, w * .5f, h * .85f)
-                path.quadTo(w * .5f, h * .5f, w * .15f, h * .5f)
-                path.quadTo(w * .5f, h * .5f, w * .5f, h * .15f)
-                c.drawPath(path, p)
-            }
-            CLOSE -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                c.drawLine(w * .25f, h * .25f, w * .75f, h * .75f, p)
-                c.drawLine(w * .75f, h * .25f, w * .25f, h * .75f, p)
-            }
-            SLIDERS -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                c.drawLine(w * .15f, h * .3f, w * .85f, h * .3f, p)
-                c.drawLine(w * .15f, h * .5f, w * .85f, h * .5f, p)
-                c.drawLine(w * .15f, h * .7f, w * .85f, h * .7f, p)
-                c.drawCircle(w * .35f, h * .3f, d * 3.5f, p)
-                c.drawCircle(w * .65f, h * .5f, d * 3.5f, p)
-                c.drawCircle(w * .4f, h * .7f, d * 3.5f, p)
-            }
-            SPEAKER -> {
-                p.style = Paint.Style.STROKE
-                p.color = light
-                path.reset()
-                path.moveTo(w * .18f, h * .38f)
-                path.lineTo(w * .34f, h * .38f)
-                path.lineTo(w * .54f, h * .22f)
-                path.lineTo(w * .54f, h * .78f)
-                path.lineTo(w * .34f, h * .62f)
-                path.lineTo(w * .18f, h * .62f)
-                path.close()
-                c.drawPath(path, p)
-                c.drawArc(RectF(w * .5f, h * .32f, w * .78f, h * .68f), -50f, 100f, false, p)
-                c.drawArc(RectF(w * .58f, h * .2f, w * .92f, h * .8f), -50f, 100f, false, p)
-            }
-        }
-    }
-}
-
-class CheckView(c: Context) : View(c) {
-    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val path = Path()
-    var state: Int = 0
-        set(v) {
-            field = v
-            invalidate()
-        }
-
-    override fun onDraw(c: Canvas) {
-        val d = resources.displayMetrics.density
-        val w = width.toFloat()
-        val h = height.toFloat()
-        val r = RectF(d * 2, d * 2, w - d * 2, h - d * 2)
-        if (state == 0) {
-            p.style = Paint.Style.STROKE
-            p.strokeWidth = d * 2f
-            p.color = 0xFF777777.toInt()
-            c.drawRoundRect(r, d * 4, d * 4, p)
-        } else {
-            p.style = Paint.Style.FILL
-            p.color = 0xFFE8504A.toInt()
-            c.drawRoundRect(r, d * 4, d * 4, p)
-            p.style = Paint.Style.STROKE
-            p.strokeWidth = d * 2f
-            p.strokeCap = Paint.Cap.ROUND
-            p.strokeJoin = Paint.Join.ROUND
-            p.color = Color.WHITE
-            if (state == 1) {
-                path.reset()
-                path.moveTo(w * .28f, h * .52f)
-                path.lineTo(w * .43f, h * .67f)
-                path.lineTo(w * .72f, h * .34f)
-                c.drawPath(path, p)
-            } else {
-                c.drawLine(w * .3f, h * .5f, w * .7f, h * .5f, p)
-            }
-        }
-    }
-}
-
-class RecView(c: Context) : View(c) {
-    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-    var recording: Boolean = false
-        set(v) {
-            if (field != v) {
-                field = v
-                invalidate()
-            }
-        }
-
-    override fun onDraw(c: Canvas) {
-        val d = resources.displayMetrics.density
-        val cx = width / 2f
-        val cy = height / 2f
-        val r = minOf(width, height) / 2f - d * 3f
-        p.style = Paint.Style.STROKE
-        p.strokeWidth = d * 3f
-        p.color = 0xFF555555.toInt()
-        c.drawCircle(cx, cy, r, p)
-        p.style = Paint.Style.FILL
-        p.color = 0xFFE8504A.toInt()
-        if (recording) {
-            val s = r * 0.42f
-            c.drawRoundRect(RectF(cx - s, cy - s, cx + s, cy + s), d * 5, d * 5, p)
-        } else {
-            c.drawCircle(cx, cy, r * 0.52f, p)
-        }
-    }
-}
 
 class MainActivity : AppCompatActivity() {
 
@@ -557,4 +324,321 @@ class MainActivity : AppCompatActivity() {
         stopPlayer()
         expanded = null
         selMode = true
-      
+        selected.clear()
+        if (path != null) selected.add(path)
+        applyMode()
+        refresh()
+    }
+
+    private fun exitSel() {
+        popup?.dismiss()
+        selMode = false
+        selected.clear()
+        applyMode()
+        refresh()
+    }
+
+    private fun updateSelHeader() {
+        selCount.text = "${selected.size} selected"
+        selAll.state = when {
+            selected.isEmpty() -> 0
+            shown.isNotEmpty() && selected.size >= shown.size -> 1
+            else -> 2
+        }
+    }
+
+    private fun toggleAll() {
+        if (shown.isNotEmpty() && selected.size >= shown.size) {
+            selected.clear()
+        } else {
+            selected.clear()
+            shown.forEach { selected.add(it.absolutePath) }
+        }
+        for ((k, v) in checks) v.state = if (selected.contains(k)) 1 else 0
+        updateSelHeader()
+    }
+
+    private fun toggle(f: File) {
+        val key = f.absolutePath
+        if (!selected.add(key)) selected.remove(key)
+        checks[key]?.state = if (selected.contains(key)) 1 else 0
+        updateSelHeader()
+    }
+
+    private fun selectedFiles(): List<File> = shown.filter { selected.contains(it.absolutePath) }
+
+        private fun toggleRecording() {
+        if (RecorderService.recording) {
+            startService(
+                Intent(this, RecorderService::class.java).setAction(RecorderService.ACTION_STOP)
+            )
+            return
+        }
+        val need = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= 33) need.add(Manifest.permission.POST_NOTIFICATIONS)
+        val missing = need.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, missing.toTypedArray(), 7)
+        } else {
+            launchService()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 7) {
+            val mic = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+            if (mic) launchService()
+            else Toast.makeText(this, R.string.permission_needed, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun launchService() {
+        try {
+            stopPlayer()
+            expanded = null
+            val i = Intent(this, RecorderService::class.java).putExtra("cat", "rec")
+            ContextCompat.startForegroundService(this, i)
+        } catch (e: Throwable) {
+            Toast.makeText(this, "Error: " + e.message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun title(f: File): String {
+        val n = f.nameWithoutExtension
+        return n.substringAfter("_", n)
+    }
+
+    private fun sub(f: File): String {
+        val sec = ((f.length() - 44).coerceAtLeast(0) / (RecorderService.RATE * 2L)).toInt()
+        val dur = "%02d:%02d".format(sec / 60, sec % 60)
+        val date = SimpleDateFormat("MM/dd/yyyy", Locale.US).format(Date(f.lastModified()))
+        return "$dur $date"
+    }
+
+    private fun fmt(ms: Int): String {
+        val sec = ms / 1000
+        return "%02d:%02d".format(sec / 60, sec % 60)
+    }
+
+    private fun isPlayingNow(): Boolean =
+        try { player?.isPlaying == true } catch (_: Exception) { false }
+
+    private fun refresh() {
+        list.removeAllViews()
+        checks.clear()
+        seek = null
+        curT = null
+        totT = null
+        val files = if (tab == 2) emptyList() else
+            RecorderService.dir(this).listFiles()
+                ?.filter { it.extension == "wav" }
+                ?.sortedByDescending { it.lastModified() } ?: emptyList()
+        shown = files
+        selected.retainAll(files.map { it.absolutePath }.toSet())
+        if (selMode) updateSelHeader()
+        if (files.isEmpty()) {
+            list.addView(TextView(this).apply {
+                text = getString(R.string.no_recordings)
+                setTextColor(gray)
+                setPadding(dp(8), dp(16), dp(8), dp(8))
+            })
+            return
+        }
+        for (f in files) {
+            val path = f.absolutePath
+            val isOpen = !selMode && expanded == path
+
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(20).toFloat()
+                    setColor(cardBg)
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, 0, dp(8)) }
+            }
+
+            val head = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                if (selMode) setPadding(dp(16), dp(12), dp(16), dp(12))
+                else setPadding(dp(18), dp(12), dp(8), dp(12))
+            }
+            if (selMode) {
+                val cv = CheckView(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(26), dp(26)).apply {
+                        marginEnd = dp(16)
+                    }
+                    state = if (selected.contains(path)) 1 else 0
+                }
+                checks[path] = cv
+                head.addView(cv)
+            }
+            val texts = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            texts.addView(TextView(this).apply {
+                text = title(f)
+                textSize = 17f
+                maxLines = 2
+                setTextColor(Color.WHITE)
+            })
+            texts.addView(TextView(this).apply {
+                text = sub(f)
+                textSize = 13f
+                setTextColor(gray)
+            })
+            head.addView(texts)
+            if (!selMode) {
+                val nowPlaying = playingPath == path && isPlayingNow()
+                head.addView(IconView(this, if (nowPlaying) IconView.PAUSE else IconView.PLAY).apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+                    setOnClickListener { play(f) }
+                })
+            } else {
+                head.setOnClickListener { toggle(f) }
+            }
+            head.setOnLongClickListener {
+                if (!selMode) enterSel(path)
+                true
+            }
+            card.addView(head)
+            if (isOpen) card.addView(buildPanel(f))
+            list.addView(card)
+        }
+    }
+
+    private fun buildPanel(f: File): View {
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), 0, dp(18), dp(12))
+        }
+        val p = player
+        val sameFile = p != null && playingPath == f.absolutePath
+        val total = ((f.length() - 44).coerceAtLeast(0) * 1000L / (RecorderService.RATE * 2L)).toInt()
+        val cur = if (sameFile && p != null) {
+            try { p.currentPosition } catch (_: Exception) { 0 }
+        } else 0
+
+        val bar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        curT = TextView(this).apply {
+            text = fmt(cur)
+            textSize = 13f
+            setTextColor(gray)
+        }
+        totT = TextView(this).apply {
+            text = fmt(total)
+            textSize = 13f
+            setTextColor(gray)
+        }
+        val s = SeekBar(this).apply {
+            max = total.coerceAtLeast(1)
+            progress = cur.coerceAtMost(max)
+            progressTintList = ColorStateList.valueOf(red)
+            progressBackgroundTintList = ColorStateList.valueOf(0xFF4A4A4A.toInt())
+            thumbTintList = ColorStateList.valueOf(red)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                .apply { setMargins(dp(10), 0, dp(10), 0) }
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar?, pr: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        try { player?.seekTo(pr) } catch (_: Exception) {}
+                    }
+                }
+                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStopTrackingTouch(sb: SeekBar?) {}
+            })
+        }
+        seek = s
+        bar.addView(curT)
+        bar.addView(s)
+        bar.addView(totT)
+        panel.addView(bar)
+
+        val acts = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(10), 0, 0)
+        }
+        acts.addView(barItem(IconView.TRASH, "Delete") { deleteFiles(listOf(f)) })
+        acts.addView(barItem(IconView.EDIT, "Rename") { renameFile(f) })
+        acts.addView(barItem(IconView.SLIDERS, "Playback settings") {
+            toast("Playback settings: coming soon")
+        })
+        acts.addView(barItem(IconView.SPEAKER, "Speaker") { toggleSpeaker() })
+        panel.addView(acts)
+        return panel
+    }
+
+    private fun toggleSpeaker() {
+        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        am.isSpeakerphoneOn = !am.isSpeakerphoneOn
+        toast(if (am.isSpeakerphoneOn) "Speaker on" else "Speaker off")
+    }
+
+    private fun updatePlayback() {
+        val s = seek ?: return
+        val ct = curT ?: return
+        val tt = totT ?: return
+        val p = player ?: return
+        if (playingPath == null || playingPath != expanded) return
+        try {
+            val d = p.duration.coerceAtLeast(1)
+            if (s.max != d) s.max = d
+            val pos = p.currentPosition
+            s.progress = pos
+            ct.text = fmt(pos)
+            tt.text = fmt(d)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun stopPlayer() {
+        try { player?.release() } catch (_: Exception) {}
+        player = null
+        playingPath = null
+    }
+
+    private fun play(f: File) {
+        val p = player
+        if (p != null && playingPath == f.absolutePath) {
+            try {
+                if (p.isPlaying) p.pause() else p.start()
+            } catch (_: Exception) {}
+            refresh()
+            return
+        }
+        stopPlayer()
+        try {
+            val mp = MediaPlayer()
+            mp.setDataSource(f.absolutePath)
+            mp.prepare()
+            mp.setOnCompletionListener {
+                stopPlayer()
+                expanded = null
+                refresh()
+            }
+            mp.start()
+            player = mp
+            playingPath = f.absolutePath
+            expanded = f.absolutePath
+        } catch (_: Exception) {
+            stopPlayer()
+            expanded = null
+            toast("Cannot play this recording")
+        }
+        refresh()
+    }
+}
