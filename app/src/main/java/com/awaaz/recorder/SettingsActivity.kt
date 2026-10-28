@@ -106,7 +106,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         val note = TextView(this).apply {
-            text = "Ye settings nayi recordings par lagengi. Echo band karke record karoge to awaaz bina echo ki hogi."
+            text = "Ye settings nayi recordings aur Enhance (Meri settings) par lagengi."
             textSize = 13f
             setTextColor(0xFF9A9A9A.toInt())
             setPadding(0, dp(24), 0, 0)
