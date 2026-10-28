@@ -23,6 +23,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".RecordActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
         <service
             android:name=".RecorderService"
             android:exported="false"
