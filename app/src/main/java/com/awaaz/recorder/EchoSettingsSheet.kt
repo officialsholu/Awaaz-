@@ -28,8 +28,8 @@ object EchoSettingsSheet {
         onPreview: (Preset) -> Unit = {},
         onApply: (Preset) -> Unit = {}
     ) {
-        val d = context.resources.displayMetrics.density
-        fun dp(v: Int) = (v * d).toInt()
+        val density = context.resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
 
         val dialog = Dialog(context)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -43,7 +43,7 @@ object EchoSettingsSheet {
             }
         }
 
-        fun text(
+        fun label(
             value: String,
             size: Float,
             color: Int = WHITE,
@@ -60,41 +60,30 @@ object EchoSettingsSheet {
         }
 
         heading.addView(
-            text("Echo settings", 22f, WHITE, true),
+            label("Echo settings", 22f, WHITE, true),
             LinearLayout.LayoutParams(0, dp(42), 1f)
         )
 
-        val close = text("✕", 24f).apply {
-            gravity = Gravity.CENTER
-            setOnClickListener { dialog.dismiss() }
-        }
-        heading.addView(close, LinearLayout.LayoutParams(dp(40), dp(42)))
-        root.addView(heading)
-
-        root.addView(
-            text("Adjust the sound of your recording", 13f, GREY)
+        heading.addView(
+            label("✕", 24f).apply {
+                gravity = Gravity.CENTER
+                setOnClickListener { dialog.dismiss() }
+            },
+            LinearLayout.LayoutParams(dp(40), dp(42))
         )
+        root.addView(heading)
+        root.addView(label("Adjust your recording sound", 13f, GREY))
 
         val enabled = Switch(context).apply {
             text = "Enable effects"
             textSize = 15f
             setTextColor(WHITE)
-            buttonTintList = null
             isChecked = initial.echoMix > 0f || initial.reverbMix > 0f
         }
 
-        val switchRow = LinearLayout(context).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(12), 0, dp(8))
-            addView(
-                enabled,
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(48)
-                )
-            )
-        }
-        root.addView(switchRow)
+        root.addView(enabled, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(52)
+        ))
 
         fun addSlider(
             title: String,
@@ -103,12 +92,12 @@ object EchoSettingsSheet {
             start: Int,
             suffix: String
         ): SeekBar {
-            val row = LinearLayout(context).apply {
+            val group = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(0, dp(7), 0, dp(5))
+                setPadding(0, dp(6), 0, dp(5))
             }
 
-            val label = text("", 14f)
+            val titleView = label("", 14f)
             val seek = SeekBar(context).apply {
                 this.max = max - min
                 progress = (start - min).coerceIn(0, max - min)
@@ -118,30 +107,27 @@ object EchoSettingsSheet {
                     android.content.res.ColorStateList.valueOf(RED)
             }
 
-            fun updateLabel(value: Int) {
-                label.text = "$title     $value$suffix"
+            fun update(value: Int) {
+                titleView.text = "$title    $value$suffix"
             }
 
-            updateLabel(start.coerceIn(min, max))
+            update(seek.progress + min)
 
             seek.setOnSeekBarChangeListener(
                 object : SeekBar.OnSeekBarChangeListener {
                     override fun onProgressChanged(
-                        bar: SeekBar?,
-                        progress: Int,
-                        fromUser: Boolean
+                        bar: SeekBar?, progress: Int, fromUser: Boolean
                     ) {
-                        updateLabel(progress + min)
+                        update(progress + min)
                     }
-
                     override fun onStartTrackingTouch(bar: SeekBar?) {}
                     override fun onStopTrackingTouch(bar: SeekBar?) {}
                 }
             )
 
-            row.addView(label)
-            row.addView(seek)
-            root.addView(row)
+            group.addView(titleView)
+            group.addView(seek)
+            root.addView(group)
             return seek
         }
 
@@ -151,8 +137,7 @@ object EchoSettingsSheet {
         )
 
         val delay = addSlider(
-            "Delay", 50, 500,
-            initial.echoMs.coerceIn(50, 500), " ms"
+            "Delay", 0, 500, initial.echoMs, " ms"
         )
 
         val feedback = addSlider(
@@ -167,56 +152,47 @@ object EchoSettingsSheet {
 
         fun currentPreset(): Preset {
             val active = enabled.isChecked
-
             return initial.copy(
                 echoMix = if (active) echo.progress / 100f else 0f,
-                echoMs = delay.progress + 50,
+                echoMs = delay.progress,
                 feedback = feedback.progress / 100f,
-                reverbMix =
-                    if (active) reverb.progress / 100f else 0f
+                reverbMix = if (active) reverb.progress / 100f else 0f
             )
         }
 
         val buttons = LinearLayout(context).apply {
             gravity = Gravity.CENTER
-            setPadding(0, dp(16), 0, 0)
+            setPadding(0, dp(14), 0, 0)
         }
 
-        val preview = Button(context).apply {
-            text = "Preview"
-            isAllCaps = false
-            setTextColor(WHITE)
-            setBackgroundColor(0xFF393939.toInt())
-            setOnClickListener { onPreview(currentPreset()) }
+        fun makeButton(title: String, color: Int) =
+            Button(context).apply {
+                text = title
+                isAllCaps = false
+                setTextColor(Color.WHITE)
+                setBackgroundColor(color)
+            }
+
+        val preview = makeButton("Preview", 0xFF393939.toInt())
+        preview.setOnClickListener { onPreview(currentPreset()) }
+
+        val apply = makeButton("Apply", RED)
+        apply.setOnClickListener {
+            onApply(currentPreset())
+            dialog.dismiss()
         }
 
-        val apply = Button(context).apply {
-            text = "Apply"
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            setBackgroundColor(RED)
-            setOnClickListener {
-                onApply(currentPreset())
-                dialog.dismiss()
-            }
-        }
+        buttons.addView(preview, LinearLayout.LayoutParams(
+            0, dp(50), 1f
+        ).apply { marginEnd = dp(8) })
 
-        buttons.addView(
-            preview,
-            LinearLayout.LayoutParams(0, dp(50), 1f).apply {
-                marginEnd = dp(8)
-            }
-        )
-        buttons.addView(
-            apply,
-            LinearLayout.LayoutParams(0, dp(50), 1f).apply {
-                marginStart = dp(8)
-            }
-        )
+        buttons.addView(apply, LinearLayout.LayoutParams(
+            0, dp(50), 1f
+        ).apply { marginStart = dp(8) })
 
         root.addView(buttons)
-
         dialog.setContentView(root)
+
         dialog.window?.apply {
             setBackgroundDrawableResource(android.R.color.transparent)
             setLayout(
@@ -225,13 +201,10 @@ object EchoSettingsSheet {
             )
             setGravity(Gravity.BOTTOM)
             addFlags(Window.LayoutParams.FLAG_DIM_BEHIND)
-            attributes = attributes.apply {
-                dimAmount = 0.65f
-            }
+            attributes = attributes.apply { dimAmount = 0.65f }
         }
 
         dialog.show()
-
         dialog.window?.setLayout(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
