@@ -1,10 +1,9 @@
 package com.awaaz.recorder
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -27,9 +26,10 @@ class PlayerActivity : AppCompatActivity() {
     private val marks = ArrayList<Long>()
     private var levels = FloatArray(0)
     private var file: File? = null
-    private var player: MediaPlayer? = null
+    private var player: LivePlayer? = null
     private var duration = 0
     private var dragging = false
+    private var leavingForSettings = false
 
     private lateinit var wave: WaveView
     private lateinit var timeBig: TextView
@@ -75,9 +75,16 @@ class PlayerActivity : AppCompatActivity() {
         loadAll(File(path))
     }
 
+    override fun onResume() {
+        super.onResume()
+        leavingForSettings = false
+    }
+
     override fun onPause() {
         super.onPause()
-        try { player?.pause() } catch (_: Exception) {}
+        if (!leavingForSettings) {
+            try { player?.pause() } catch (_: Exception) {}
+        }
     }
 
     override fun onDestroy() {
@@ -103,15 +110,15 @@ class PlayerActivity : AppCompatActivity() {
             }
         }.start()
         try {
-            val p = MediaPlayer()
-            p.setDataSource(f.absolutePath)
-            p.prepare()
+            val p = LivePlayer(this, f)
             duration = p.duration
             seek.max = duration
             totT.text = fmt(duration)
-            p.setOnCompletionListener {
-                playBtn.kind = RingIcon.PLAY
-                playBtn.invalidate()
+            p.onDone = {
+                runOnUiThread {
+                    playBtn.kind = RingIcon.PLAY
+                    playBtn.invalidate()
+                }
             }
             player = p
             handler.post(ticker)
@@ -158,16 +165,12 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun togglePlay() {
         val p = player ?: return
-        try {
-            if (p.isPlaying) p.pause() else p.start()
-        } catch (_: Exception) {
-        }
+        if (p.isPlaying) p.pause() else p.start()
     }
 
     private fun skip(ms: Int) {
         val p = player ?: return
-        val target = (p.currentPosition + ms).coerceIn(0, duration)
-        try { p.seekTo(target) } catch (_: Exception) {}
+        p.seekTo((p.currentPosition + ms).coerceIn(0, duration))
     }
 
     private fun addMark() {
@@ -204,8 +207,8 @@ class PlayerActivity : AppCompatActivity() {
         val t = tv(label, 13f, Color.WHITE)
         t.gravity = Gravity.CENTER
         t.typeface = medium()
-        t.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
+        t.background = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
             setStroke(dp(2), 0xFF555555.toInt())
         }
         t.layoutParams = LinearLayout.LayoutParams(dp(56), dp(56)).apply {
@@ -222,11 +225,26 @@ class PlayerActivity : AppCompatActivity() {
         root.setPadding(dp(16), dp(28), dp(16), dp(20))
 
         val top = LinearLayout(this)
+        top.orientation = LinearLayout.HORIZONTAL
         top.gravity = Gravity.CENTER_VERTICAL
         val back = Icon2View(this, Icon2View.BACK)
         back.layoutParams = LinearLayout.LayoutParams(dp(32), dp(32))
         back.setOnClickListener { finish() }
         top.addView(back)
+        top.addView(View(this), LinearLayout.LayoutParams(0, 0, 1f))
+
+        val setBtn = IconView(this, IconView.SLIDERS)
+        setBtn.layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
+        setBtn.setOnClickListener {
+            leavingForSettings = true
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+        top.addView(setBtn)
+
+        val enhBtn = tv("Enhance", 15f, red)
+        enhBtn.setPadding(dp(12), dp(6), dp(4), dp(6))
+        enhBtn.setOnClickListener { file?.let { Enhancer.pick(this, it) } }
+        top.addView(enhBtn)
         root.addView(top)
 
         val tabs = LinearLayout(this)
