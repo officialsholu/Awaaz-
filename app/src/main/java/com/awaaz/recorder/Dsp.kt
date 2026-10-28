@@ -48,7 +48,6 @@ class Dsp(private val p: Preset, rate: Int) {
         return if (a <= 0.8f) v else sign(v) * (0.8f + 0.2f * tanh((a - 0.8f) / 0.2f))
     }
 
-    // ek sample (-1 se 1 ke beech) ko process karke wapas deta hai
     fun process(x: Float): Float {
         hpY = hpA * (hpY + x - hpX)
         hpX = x
