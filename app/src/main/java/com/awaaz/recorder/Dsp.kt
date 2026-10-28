@@ -3,10 +3,11 @@ package com.awaaz.recorder
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sign
 import kotlin.math.tanh
 
-class Dsp(private val p: Preset, rate: Int) {
+class Dsp(private var p: Preset, private val rate: Int) {
     private val dt = 1f / rate
     private val twoPi = 2f * PI.toFloat()
 
@@ -28,10 +29,11 @@ class Dsp(private val p: Preset, rate: Int) {
     private var env = 0f
     private var gate = 1f
 
-    private val echoLen = max(1, p.echoDelayMs * rate / 1000)
-    private val echoBuf = FloatArray(echoLen)
+    private val maxEcho = rate * 700 / 1000
+    private val echoBuf = FloatArray(maxEcho)
     private var echoIdx = 0
     private var echoLp = 0f
+    private var delaySamples = 1
 
     private val combBase = intArrayOf(1557, 1617, 1491, 1422)
     private val scale = 0.5f + p.room * 0.9f
@@ -42,6 +44,16 @@ class Dsp(private val p: Preset, rate: Int) {
 
     private val apBufs = arrayOf(FloatArray(225), FloatArray(556))
     private val apIdx = IntArray(2)
+
+    init {
+        setPreset(p)
+    }
+
+    // Settings badalne par yeh live call hota hai
+    fun setPreset(np: Preset) {
+        p = np
+        delaySamples = min(maxEcho - 1, max(1, np.echoDelayMs * rate / 1000))
+    }
 
     private fun limit(v: Float): Float {
         val a = abs(v)
@@ -62,11 +74,12 @@ class Dsp(private val p: Preset, rate: Int) {
         gate += 0.001f * (target - gate)
         s *= gate * 1.3f
 
-        val d = echoBuf[echoIdx]
+        val readIdx = (echoIdx - delaySamples + maxEcho) % maxEcho
+        val d = echoBuf[readIdx]
         echoLp += aDamp * (d - echoLp)
         echoBuf[echoIdx] = s + echoLp * p.echoRepeat
         echoIdx++
-        if (echoIdx >= echoLen) echoIdx = 0
+        if (echoIdx >= maxEcho) echoIdx = 0
         val echoOut = if (p.echoOn) d * p.echoVolume else 0f
 
         var rev = 0f
