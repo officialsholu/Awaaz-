@@ -178,7 +178,7 @@ class RecorderService : Service() {
                     segPeak = 0
                     segN = 0
                 }
-                val y = dsp.process(raw / 32768f)
+                val y = raw / 32768f
                 val v = (y * 32767f).toInt().coerceIn(-32768, 32767)
                 bytes[2 * i] = (v and 0xFF).toByte()
                 bytes[2 * i + 1] = (v shr 8).toByte()
