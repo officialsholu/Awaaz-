@@ -10,21 +10,29 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -37,6 +45,11 @@ class IconView(c: Context, var kind: Int) : View(c) {
         const val MORE = 2
         const val PLAY = 3
         const val PAUSE = 4
+        const val TRASH = 5
+        const val SHARE = 6
+        const val EDIT = 7
+        const val SPARK = 8
+        const val CLOSE = 9
     }
 
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -91,6 +104,108 @@ class IconView(c: Context, var kind: Int) : View(c) {
                 c.drawRoundRect(RectF(w * .32f, h * .26f, w * .46f, h * .74f), d * 2, d * 2, p)
                 c.drawRoundRect(RectF(w * .54f, h * .26f, w * .68f, h * .74f), d * 2, d * 2, p)
             }
+            TRASH -> {
+                p.style = Paint.Style.STROKE
+                p.color = light
+                c.drawLine(w * .2f, h * .28f, w * .8f, h * .28f, p)
+                c.drawRoundRect(RectF(w * .4f, h * .16f, w * .6f, h * .28f), d * 2, d * 2, p)
+                path.reset()
+                path.moveTo(w * .27f, h * .28f)
+                path.lineTo(w * .32f, h * .82f)
+                path.lineTo(w * .68f, h * .82f)
+                path.lineTo(w * .73f, h * .28f)
+                c.drawPath(path, p)
+                c.drawLine(w * .42f, h * .4f, w * .42f, h * .7f, p)
+                c.drawLine(w * .58f, h * .4f, w * .58f, h * .7f, p)
+            }
+            SHARE -> {
+                p.style = Paint.Style.STROKE
+                p.color = light
+                path.reset()
+                path.moveTo(w * .56f, h * .22f)
+                path.lineTo(w * .24f, h * .22f)
+                path.lineTo(w * .24f, h * .78f)
+                path.lineTo(w * .78f, h * .78f)
+                path.lineTo(w * .78f, h * .5f)
+                c.drawPath(path, p)
+                c.drawLine(w * .46f, h * .54f, w * .8f, h * .2f, p)
+                path.reset()
+                path.moveTo(w * .62f, h * .2f)
+                path.lineTo(w * .8f, h * .2f)
+                path.lineTo(w * .8f, h * .38f)
+                c.drawPath(path, p)
+            }
+            EDIT -> {
+                p.style = Paint.Style.STROKE
+                p.color = light
+                path.reset()
+                path.moveTo(w * .56f, h * .22f)
+                path.lineTo(w * .24f, h * .22f)
+                path.lineTo(w * .24f, h * .78f)
+                path.lineTo(w * .78f, h * .78f)
+                path.lineTo(w * .78f, h * .5f)
+                c.drawPath(path, p)
+                p.strokeWidth = d * 3f
+                c.drawLine(w * .42f, h * .58f, w * .78f, h * .22f, p)
+            }
+            SPARK -> {
+                p.style = Paint.Style.STROKE
+                p.color = light
+                path.reset()
+                path.moveTo(w * .5f, h * .15f)
+                path.quadTo(w * .5f, h * .5f, w * .85f, h * .5f)
+                path.quadTo(w * .5f, h * .5f, w * .5f, h * .85f)
+                path.quadTo(w * .5f, h * .5f, w * .15f, h * .5f)
+                path.quadTo(w * .5f, h * .5f, w * .5f, h * .15f)
+                c.drawPath(path, p)
+            }
+            CLOSE -> {
+                p.style = Paint.Style.STROKE
+                p.color = light
+                c.drawLine(w * .25f, h * .25f, w * .75f, h * .75f, p)
+                c.drawLine(w * .75f, h * .25f, w * .25f, h * .75f, p)
+            }
+        }
+    }
+}
+
+class CheckView(c: Context) : View(c) {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val path = Path()
+    var state: Int = 0
+        set(v) {
+            field = v
+            invalidate()
+        }
+
+    override fun onDraw(c: Canvas) {
+        val d = resources.displayMetrics.density
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val r = RectF(d * 2, d * 2, w - d * 2, h - d * 2)
+        if (state == 0) {
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = d * 2f
+            p.color = 0xFF777777.toInt()
+            c.drawRoundRect(r, d * 4, d * 4, p)
+        } else {
+            p.style = Paint.Style.FILL
+            p.color = 0xFFE8504A.toInt()
+            c.drawRoundRect(r, d * 4, d * 4, p)
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = d * 2f
+            p.strokeCap = Paint.Cap.ROUND
+            p.strokeJoin = Paint.Join.ROUND
+            p.color = Color.WHITE
+            if (state == 1) {
+                path.reset()
+                path.moveTo(w * .28f, h * .52f)
+                path.lineTo(w * .43f, h * .67f)
+                path.lineTo(w * .72f, h * .34f)
+                c.drawPath(path, p)
+            } else {
+                c.drawLine(w * .3f, h * .5f, w * .7f, h * .5f, p)
+            }
         }
     }
 }
@@ -131,15 +246,28 @@ class MainActivity : AppCompatActivity() {
     private val cardBg = 0xFF202020.toInt()
     private val gray = 0xFF9A9A9A.toInt()
     private val tabGray = 0xFF8A8A8A.toInt()
+    private val light = 0xFFE6E6E6.toInt()
     private val handler = Handler(Looper.getMainLooper())
 
     private var ready = false
     private var tab = 0
     private lateinit var list: LinearLayout
     private lateinit var rec: RecView
+    private lateinit var normalTop: LinearLayout
+    private lateinit var selTop: LinearLayout
+    private lateinit var selCount: TextView
+    private lateinit var selAll: CheckView
+    private lateinit var recBottom: LinearLayout
+    private lateinit var barBottom: LinearLayout
     private val tabLabels = listOf("All", "Recorder", "Phone")
     private val tabTexts = ArrayList<TextView>()
     private val tabBars = ArrayList<View>()
+
+    private var selMode = false
+    private val selected = LinkedHashSet<String>()
+    private val checks = HashMap<String, CheckView>()
+    private var shown: List<File> = emptyList()
+    private var popup: PopupWindow? = null
 
     private var player: MediaPlayer? = null
     private var playingPath: String? = null
@@ -162,6 +290,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = Color.BLACK
         window.navigationBarColor = Color.BLACK
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (selMode) {
+                    exitSel()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
         try {
             setContentView(buildUi())
             ready = true
@@ -188,6 +326,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        popup?.dismiss()
         stopPlayer()
         super.onDestroy()
     }
@@ -216,12 +355,12 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(16), dp(28), dp(16), dp(10))
         }
 
-        val top = LinearLayout(this).apply {
+        normalTop = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(4), dp(8), dp(4), dp(16))
         }
-        top.addView(TextView(this).apply {
+        normalTop.addView(TextView(this).apply {
             text = "Recorder"
             textSize = 30f
             setTextColor(Color.WHITE)
@@ -229,13 +368,40 @@ class MainActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
         for (k in listOf(IconView.SELECT, IconView.SEARCH, IconView.MORE)) {
-            top.addView(IconView(this, k).apply {
+            normalTop.addView(IconView(this, k).apply {
                 layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply {
                     marginStart = dp(14)
                 }
+                if (k == IconView.SELECT) setOnClickListener { enterSel(null) }
             })
         }
-        root.addView(top)
+        root.addView(normalTop)
+
+        selTop = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(4), dp(8), dp(4), dp(16))
+            visibility = View.GONE
+        }
+        selAll = CheckView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
+            setOnClickListener { toggleAll() }
+        }
+        selCount = TextView(this).apply {
+            text = "0 selected"
+            textSize = 19f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            typeface = medium()
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        selTop.addView(selAll)
+        selTop.addView(selCount)
+        selTop.addView(IconView(this, IconView.CLOSE).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
+            setOnClickListener { exitSel() }
+        })
+        root.addView(selTop)
 
         val tabs = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -278,7 +444,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
         )
 
-        val bottom = LinearLayout(this).apply {
+        recBottom = LinearLayout(this).apply {
             gravity = Gravity.CENTER
             setPadding(0, dp(8), 0, dp(6))
         }
@@ -286,10 +452,55 @@ class MainActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(dp(76), dp(76))
             setOnClickListener { toggleRecording() }
         }
-        bottom.addView(rec)
-        root.addView(bottom)
+        recBottom.addView(rec)
+        root.addView(recBottom)
+
+        barBottom = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        barBottom.addView(View(this).apply {
+            setBackgroundColor(0xFF2A2A2A.toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
+            )
+        })
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        row.addView(barItem(IconView.TRASH, "Delete") { doDelete() })
+        row.addView(barItem(IconView.SHARE, "Share") { doShare() })
+        row.addView(barItem(IconView.EDIT, "Rename") { doRename() })
+        row.addView(barItem(IconView.SPARK, "Smart naming") {
+            toast("Smart naming needs internet")
+        })
+        row.addView(barItem(IconView.MORE, "More") { v -> showMore(v) })
+        barBottom.addView(row)
+        root.addView(barBottom)
         return root
     }
+
+    private fun barItem(kind: Int, label: String, onClick: (View) -> Unit): LinearLayout {
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setPadding(0, dp(10), 0, dp(8))
+        }
+        col.setOnClickListener { onClick(col) }
+        col.addView(IconView(this, kind).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(26), dp(26))
+        })
+        col.addView(TextView(this).apply {
+            text = label
+            textSize = 11.5f
+            gravity = Gravity.CENTER
+            maxLines = 1
+            setTextColor(light)
+            setPadding(0, dp(4), 0, 0)
+        })
+        return col
+    }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     private fun styleTabs() {
         for (i in tabTexts.indices) {
@@ -298,6 +509,190 @@ class MainActivity : AppCompatActivity() {
             tabTexts[i].typeface = if (on) medium() else Typeface.DEFAULT
             tabBars[i].setBackgroundColor(if (on) red else Color.TRANSPARENT)
         }
+    }
+
+    private fun applyMode() {
+        normalTop.visibility = if (selMode) View.GONE else View.VISIBLE
+        selTop.visibility = if (selMode) View.VISIBLE else View.GONE
+        recBottom.visibility = if (selMode) View.GONE else View.VISIBLE
+        barBottom.visibility = if (selMode) View.VISIBLE else View.GONE
+    }
+
+    private fun enterSel(path: String?) {
+        stopPlayer()
+        selMode = true
+        selected.clear()
+        if (path != null) selected.add(path)
+        applyMode()
+        refresh()
+    }
+
+    private fun exitSel() {
+        popup?.dismiss()
+        selMode = false
+        selected.clear()
+        applyMode()
+        refresh()
+    }
+
+    private fun updateSelHeader() {
+        selCount.text = "${selected.size} selected"
+        selAll.state = when {
+            selected.isEmpty() -> 0
+            shown.isNotEmpty() && selected.size >= shown.size -> 1
+            else -> 2
+        }
+    }
+
+    private fun toggleAll() {
+        if (shown.isNotEmpty() && selected.size >= shown.size) {
+            selected.clear()
+        } else {
+            selected.clear()
+            shown.forEach { selected.add(it.absolutePath) }
+        }
+        for ((k, v) in checks) v.state = if (selected.contains(k)) 1 else 0
+        updateSelHeader()
+    }
+
+    private fun toggle(f: File) {
+        val key = f.absolutePath
+        if (!selected.add(key)) selected.remove(key)
+        checks[key]?.state = if (selected.contains(key)) 1 else 0
+        updateSelHeader()
+    }
+
+    private fun selectedFiles(): List<File> = shown.filter { selected.contains(it.absolutePath) }
+
+    private fun doDelete() {
+        val files = selectedFiles()
+        if (files.isEmpty()) {
+            toast("Select a recording")
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete)
+            .setMessage("Delete ${files.size} recording(s)?")
+            .setPositiveButton(R.string.delete) { _, _ ->
+                files.forEach { it.delete() }
+                exitSel()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun doShare() {
+        val files = selectedFiles()
+        if (files.isEmpty()) {
+            toast("Select a recording")
+            return
+        }
+        try {
+            val uris = ArrayList<Uri>()
+            for (f in files) {
+                uris.add(FileProvider.getUriForFile(this, "$packageName.fileprovider", f))
+            }
+            val intent = if (uris.size == 1) {
+                Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, uris[0])
+            } else {
+                Intent(Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(
+                    Intent.EXTRA_STREAM, uris
+                )
+            }
+            intent.type = "audio/*"
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            startActivity(Intent.createChooser(intent, getString(R.string.share)))
+        } catch (e: Throwable) {
+            toast("Error: " + e.message)
+        }
+    }
+
+    private fun doRename() {
+        val files = selectedFiles()
+        if (files.size != 1) {
+            toast("Select one recording")
+            return
+        }
+        val f = files[0]
+        val et = EditText(this)
+        et.setText(title(f))
+        et.setSelection(et.text.length)
+        et.setSingleLine(true)
+        val box = FrameLayout(this)
+        box.setPadding(dp(20), dp(8), dp(20), 0)
+        box.addView(et)
+        AlertDialog.Builder(this)
+            .setTitle("Rename")
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val clean = et.text.toString().trim()
+                    .replace(Regex("[\\\\/:*?\"<>|]"), "")
+                if (clean.isEmpty()) return@setPositiveButton
+                val dest = File(f.parentFile, "rec_$clean.wav")
+                if (dest.exists() && dest.absolutePath != f.absolutePath) {
+                    toast("Name already exists")
+                } else {
+                    f.renameTo(dest)
+                    exitSel()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showMore(anchor: View) {
+        popup?.dismiss()
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                cornerRadius = dp(16).toFloat()
+                setColor(0xFF262626.toInt())
+            }
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        fun item(label: String, action: () -> Unit) {
+            box.addView(TextView(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                setPadding(dp(20), dp(14), dp(20), dp(14))
+                setOnClickListener {
+                    popup?.dismiss()
+                    action()
+                }
+            })
+        }
+        item("Trim") { toast("Trim: coming soon") }
+        item("Set as ringtone") { toast("Set as ringtone: coming soon") }
+        item("File info") { showInfo() }
+        item("Move to Private space") { toast("Private space: coming soon") }
+        val w = PopupWindow(box, dp(230), LinearLayout.LayoutParams.WRAP_CONTENT, true)
+        w.elevation = dp(8).toFloat()
+        w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        popup = w
+        w.showAtLocation(window.decorView, Gravity.BOTTOM or Gravity.END, dp(12), dp(88))
+    }
+
+    private fun showInfo() {
+        val files = selectedFiles()
+        if (files.size != 1) {
+            toast("Select one recording")
+            return
+        }
+        val f = files[0]
+        val sec = ((f.length() - 44).coerceAtLeast(0) / (RecorderService.RATE * 2L)).toInt()
+        val mb = f.length() / 1048576.0
+        val date = SimpleDateFormat("MM/dd/yyyy HH:mm", Locale.US).format(Date(f.lastModified()))
+        val msg = "Name: " + title(f) +
+            "\nDuration: %02d:%02d".format(sec / 60, sec % 60) +
+            "\nSize: %.2f MB".format(mb) +
+            "\nDate: " + date +
+            "\nPath: " + f.absolutePath
+        AlertDialog.Builder(this)
+            .setTitle("File info")
+            .setMessage(msg)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun toggleRecording() {
@@ -356,10 +751,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun refresh() {
         list.removeAllViews()
+        checks.clear()
         val files = if (tab == 2) emptyList() else
             RecorderService.dir(this).listFiles()
                 ?.filter { it.extension == "wav" }
                 ?.sortedByDescending { it.lastModified() } ?: emptyList()
+        shown = files
+        selected.retainAll(files.map { it.absolutePath }.toSet())
+        if (selMode) updateSelHeader()
         if (files.isEmpty()) {
             list.addView(TextView(this).apply {
                 text = getString(R.string.no_recordings)
@@ -376,11 +775,22 @@ class MainActivity : AppCompatActivity() {
                     cornerRadius = dp(20).toFloat()
                     setColor(cardBg)
                 }
-                setPadding(dp(18), dp(12), dp(8), dp(12))
+                if (selMode) setPadding(dp(16), dp(12), dp(16), dp(12))
+                else setPadding(dp(18), dp(12), dp(8), dp(12))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply { setMargins(0, 0, 0, dp(8)) }
+            }
+            if (selMode) {
+                val cv = CheckView(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(26), dp(26)).apply {
+                        marginEnd = dp(16)
+                    }
+                    state = if (selected.contains(f.absolutePath)) 1 else 0
+                }
+                checks[f.absolutePath] = cv
+                row.addView(cv)
             }
             val texts = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -397,13 +807,19 @@ class MainActivity : AppCompatActivity() {
                 textSize = 13f
                 setTextColor(gray)
             })
-            val isPlaying = playingPath == f.absolutePath
-            val icon = IconView(this, if (isPlaying) IconView.PAUSE else IconView.PLAY).apply {
-                layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
-                setOnClickListener { play(f) }
-            }
             row.addView(texts)
-            row.addView(icon)
+            if (!selMode) {
+                val isPlaying = playingPath == f.absolutePath
+                row.addView(IconView(this, if (isPlaying) IconView.PAUSE else IconView.PLAY).apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+                    setOnClickListener { play(f) }
+                })
+            }
+            row.setOnClickListener { if (selMode) toggle(f) }
+            row.setOnLongClickListener {
+                if (!selMode) enterSel(f.absolutePath)
+                true
+            }
             list.addView(row)
         }
     }
