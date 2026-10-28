@@ -575,6 +575,11 @@ class MainActivity : AppCompatActivity() {
     private fun isPlayingNow(): Boolean =
         try { player?.isPlaying == true } catch (_: Exception) { false }
 
+    private fun openPlayer(path: String) {
+        stopPlayer()
+        startActivity(Intent(this, PlayerActivity::class.java).putExtra("path", path))
+    }
+
     private fun refresh() {
         list.removeAllViews()
         checks.clear()
@@ -650,6 +655,7 @@ class MainActivity : AppCompatActivity() {
                     layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
                     setOnClickListener { play(f) }
                 })
+                head.setOnClickListener { openPlayer(path) }
             } else {
                 head.setOnClickListener { toggle(f) }
             }
