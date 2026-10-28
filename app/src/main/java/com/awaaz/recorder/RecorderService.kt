@@ -152,6 +152,7 @@ class RecorderService : Service() {
             }
         } catch (_: Exception) {}
 
+        val dsp = Dsp(Settings.preset(this), RATE)
         val raf = RandomAccessFile(file, "rw")
         raf.write(header(0))
         val buf = ShortArray(4096)
@@ -168,10 +169,8 @@ class RecorderService : Service() {
             if (n == 0) continue
             if (paused) continue
             for (i in 0 until n) {
-                val v = buf[i].toInt()
-                bytes[2 * i] = (v and 0xFF).toByte()
-                bytes[2 * i + 1] = (v shr 8).toByte()
-                val a = if (v < 0) -v else v
+                val raw = buf[i].toInt()
+                val a = if (raw < 0) -raw else raw
                 if (a > segPeak) segPeak = a
                 segN++
                 if (segN >= seg) {
@@ -179,6 +178,10 @@ class RecorderService : Service() {
                     segPeak = 0
                     segN = 0
                 }
+                val y = dsp.process(raw / 32768f)
+                val v = (y * 32767f).toInt().coerceIn(-32768, 32767)
+                bytes[2 * i] = (v and 0xFF).toByte()
+                bytes[2 * i + 1] = (v shr 8).toByte()
             }
             raf.write(bytes, 0, n * 2)
             total += n * 2
