@@ -28,6 +28,10 @@
             android:exported="false"
             android:launchMode="singleTop" />
 
+        <activity
+            android:name=".PlayerActivity"
+            android:exported="false" />
+
         <service
             android:name=".RecorderService"
             android:exported="false"
