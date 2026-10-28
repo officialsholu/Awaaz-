@@ -1,8 +1,15 @@
 package com.awaaz.recorder
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
 import android.os.Build
@@ -11,43 +18,128 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.os.LocaleListCompat
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+class IconView(c: Context, var kind: Int) : View(c) {
+    companion object {
+        const val SELECT = 0
+        const val SEARCH = 1
+        const val MORE = 2
+        const val PLAY = 3
+        const val PAUSE = 4
+    }
+
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val path = Path()
+    private val light = 0xFFE6E6E6.toInt()
+    private val red = 0xFFE8504A.toInt()
+
+    override fun onDraw(c: Canvas) {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val d = resources.displayMetrics.density
+        p.strokeWidth = d * 2f
+        p.strokeCap = Paint.Cap.ROUND
+        p.strokeJoin = Paint.Join.ROUND
+        when (kind) {
+            SELECT -> {
+                p.style = Paint.Style.STROKE
+                p.color = light
+                c.drawRoundRect(RectF(w * .16f, h * .16f, w * .84f, h * .84f), d * 4, d * 4, p)
+                path.reset()
+                path.moveTo(w * .31f, h * .52f)
+                path.lineTo(w * .45f, h * .66f)
+                path.lineTo(w * .70f, h * .36f)
+                c.drawPath(path, p)
+            }
+            SEARCH -> {
+                p.style = Paint.Style.STROKE
+                p.color = light
+                c.drawCircle(w * .45f, h * .45f, w * .26f, p)
+                c.drawLine(w * .64f, h * .64f, w * .84f, h * .84f, p)
+            }
+            MORE -> {
+                p.style = Paint.Style.FILL
+                p.color = light
+                c.drawCircle(w * .5f, h * .22f, d * 2.3f, p)
+                c.drawCircle(w * .5f, h * .5f, d * 2.3f, p)
+                c.drawCircle(w * .5f, h * .78f, d * 2.3f, p)
+            }
+            PLAY -> {
+                p.style = Paint.Style.FILL
+                p.color = red
+                path.reset()
+                path.moveTo(w * .36f, h * .26f)
+                path.lineTo(w * .36f, h * .74f)
+                path.lineTo(w * .76f, h * .5f)
+                path.close()
+                c.drawPath(path, p)
+            }
+            PAUSE -> {
+                p.style = Paint.Style.FILL
+                p.color = red
+                c.drawRoundRect(RectF(w * .32f, h * .26f, w * .46f, h * .74f), d * 2, d * 2, p)
+                c.drawRoundRect(RectF(w * .54f, h * .26f, w * .68f, h * .74f), d * 2, d * 2, p)
+            }
+        }
+    }
+}
+
+class RecView(c: Context) : View(c) {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    var recording: Boolean = false
+        set(v) {
+            if (field != v) {
+                field = v
+                invalidate()
+            }
+        }
+
+    override fun onDraw(c: Canvas) {
+        val d = resources.displayMetrics.density
+        val cx = width / 2f
+        val cy = height / 2f
+        val r = minOf(width, height) / 2f - d * 3f
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = d * 3f
+        p.color = 0xFF555555.toInt()
+        c.drawCircle(cx, cy, r, p)
+        p.style = Paint.Style.FILL
+        p.color = 0xFFE8504A.toInt()
+        if (recording) {
+            val s = r * 0.42f
+            c.drawRoundRect(RectF(cx - s, cy - s, cx + s, cy + s), d * 5, d * 5, p)
+        } else {
+            c.drawCircle(cx, cy, r * 0.52f, p)
+        }
+    }
+}
 
 class MainActivity : AppCompatActivity() {
 
-    private val cats = listOf("namaz", "quran", "naat", "azan", "other")
-    private val catRes = listOf(
-        R.string.cat_namaz, R.string.cat_quran, R.string.cat_naat,
-        R.string.cat_azan, R.string.cat_other
-    )
-    private val presetKeys = listOf("clean", "haram", "masjid", "naat")
-    private val presetRes = listOf(
-        R.string.preset_clean, R.string.preset_haram,
-        R.string.preset_masjid, R.string.preset_naat
-    )
-
-    private val teal = 0xFF00B5BE.toInt()
+    private val red = 0xFFE8504A.toInt()
+    private val cardBg = 0xFF202020.toInt()
+    private val gray = 0xFF9A9A9A.toInt()
+    private val tabGray = 0xFF8A8A8A.toInt()
     private val handler = Handler(Looper.getMainLooper())
 
     private var ready = false
-    private lateinit var timer: TextView
-    private lateinit var recBtn: Button
-    private lateinit var stopBtn: Button
-    private lateinit var spinner: Spinner
+    private var tab = 0
     private lateinit var list: LinearLayout
+    private lateinit var rec: RecView
+    private val tabLabels = listOf("All", "Recorder", "Phone")
+    private val tabTexts = ArrayList<TextView>()
+    private val tabBars = ArrayList<View>()
 
     private var player: MediaPlayer? = null
     private var playingPath: String? = null
@@ -57,19 +149,9 @@ class MainActivity : AppCompatActivity() {
         override fun run() {
             try {
                 val r = RecorderService.recording
-                if (r) {
-                    val s = (System.currentTimeMillis() - RecorderService.startTime) / 1000
-                    timer.text = "%d:%02d:%02d".format(s / 3600, (s % 3600) / 60, s % 60)
-                }
-                if (wasRecording && !r) {
-                    timer.text = "0:00:00"
-                    refresh()
-                }
+                if (wasRecording && !r) refresh()
                 wasRecording = r
-                recBtn.isEnabled = !r
-                stopBtn.isEnabled = r
-                recBtn.alpha = if (r) 0.5f else 1f
-                stopBtn.alpha = if (r) 1f else 0.5f
+                rec.recording = r
             } catch (_: Throwable) {
             }
             handler.postDelayed(this, 500)
@@ -78,6 +160,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = Color.BLACK
+        window.navigationBarColor = Color.BLACK
         try {
             setContentView(buildUi())
             ready = true
@@ -111,94 +195,80 @@ class MainActivity : AppCompatActivity() {
     private fun showError(e: Throwable) {
         val tv = TextView(this).apply {
             text = "Error:\n" + android.util.Log.getStackTraceString(e)
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(Color.WHITE)
             textSize = 12f
             setPadding(dp(16), dp(48), dp(16), dp(16))
         }
         val sv = ScrollView(this)
-        sv.setBackgroundColor(0xFF000000.toInt())
+        sv.setBackgroundColor(Color.BLACK)
         sv.addView(tv)
         setContentView(sv)
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
-    private fun circle(color: Int) = GradientDrawable().apply {
-        shape = GradientDrawable.OVAL
-        setColor(color)
-    }
-
-    private fun round(color: Int) = GradientDrawable().apply {
-        cornerRadius = dp(14).toFloat()
-        setColor(color)
-    }
-
-    private fun bigButton(text: String, size: Int): Button = Button(this).apply {
-        this.text = text
-        textSize = 18f
-        isAllCaps = false
-        setTextColor(0xFF000000.toInt())
-        background = circle(teal)
-        layoutParams = LinearLayout.LayoutParams(dp(size), dp(size)).apply {
-            setMargins(dp(10), dp(10), dp(10), dp(10))
-        }
-    }
+    private fun medium() = Typeface.create("sans-serif-medium", Typeface.NORMAL)
 
     private fun buildUi(): View {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xFF1B1D21.toInt())
-            setPadding(dp(16), dp(52), dp(16), dp(36))
+            setBackgroundColor(Color.BLACK)
+            setPadding(dp(16), dp(28), dp(16), dp(10))
         }
 
         val top = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(4), dp(8), dp(4), dp(16))
         }
         top.addView(TextView(this).apply {
-            text = getString(R.string.app_name)
-            textSize = 22f
-            setTextColor(0xFFFFFFFF.toInt())
+            text = "Recorder"
+            textSize = 30f
+            setTextColor(Color.WHITE)
+            typeface = medium()
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
-        top.addView(Button(this).apply {
-            text = getString(R.string.language)
-            isAllCaps = false
-            setOnClickListener { chooseLanguage() }
-        })
+        for (k in listOf(IconView.SELECT, IconView.SEARCH, IconView.MORE)) {
+            top.addView(IconView(this, k).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply {
+                    marginStart = dp(14)
+                }
+            })
+        }
         root.addView(top)
 
-        spinner = Spinner(this)
-        spinner.adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_dropdown_item,
-            catRes.map { getString(it) }
-        )
-        root.addView(spinner)
-
-        timer = TextView(this).apply {
-            text = "0:00:00"
-            textSize = 40f
-            gravity = Gravity.CENTER
-            setTextColor(0xFFFFFFFF.toInt())
-            setPadding(0, dp(12), 0, dp(4))
-        }
-        root.addView(timer)
-
-        val btns = LinearLayout(this).apply {
+        val tabs = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, dp(14))
         }
-        recBtn = bigButton(getString(R.string.record), 150)
-        stopBtn = bigButton(getString(R.string.stop), 110)
-        recBtn.setOnClickListener { startRecording() }
-        stopBtn.setOnClickListener {
-            startService(
-                Intent(this, RecorderService::class.java).setAction(RecorderService.ACTION_STOP)
-            )
+        tabLabels.forEachIndexed { i, label ->
+            val col = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener {
+                    tab = i
+                    styleTabs()
+                    refresh()
+                }
+            }
+            val t = TextView(this).apply {
+                text = label
+                textSize = 16f
+                gravity = Gravity.CENTER
+                setPadding(0, dp(6), 0, dp(6))
+            }
+            val b = View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(22), dp(3))
+            }
+            col.addView(t)
+            col.addView(b)
+            tabTexts.add(t)
+            tabBars.add(b)
+            tabs.addView(col)
         }
-        btns.addView(recBtn)
-        btns.addView(stopBtn)
-        root.addView(btns)
+        root.addView(tabs)
+        styleTabs()
 
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val scroll = ScrollView(this)
@@ -207,23 +277,36 @@ class MainActivity : AppCompatActivity() {
             scroll,
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
         )
+
+        val bottom = LinearLayout(this).apply {
+            gravity = Gravity.CENTER
+            setPadding(0, dp(8), 0, dp(6))
+        }
+        rec = RecView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(76), dp(76))
+            setOnClickListener { toggleRecording() }
+        }
+        bottom.addView(rec)
+        root.addView(bottom)
         return root
     }
 
-    private fun chooseLanguage() {
-        val names = arrayOf("English", "اردو", "العربية")
-        val tags = arrayOf("en", "ur", "ar")
-        AlertDialog.Builder(this)
-            .setTitle(R.string.language)
-            .setItems(names) { _, which ->
-                AppCompatDelegate.setApplicationLocales(
-                    LocaleListCompat.forLanguageTags(tags[which])
-                )
-            }
-            .show()
+    private fun styleTabs() {
+        for (i in tabTexts.indices) {
+            val on = i == tab
+            tabTexts[i].setTextColor(if (on) Color.WHITE else tabGray)
+            tabTexts[i].typeface = if (on) medium() else Typeface.DEFAULT
+            tabBars[i].setBackgroundColor(if (on) red else Color.TRANSPARENT)
+        }
     }
 
-    private fun startRecording() {
+    private fun toggleRecording() {
+        if (RecorderService.recording) {
+            startService(
+                Intent(this, RecorderService::class.java).setAction(RecorderService.ACTION_STOP)
+            )
+            return
+        }
         val need = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= 33) need.add(Manifest.permission.POST_NOTIFICATIONS)
         val missing = need.filter {
@@ -251,8 +334,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun launchService() {
         try {
-            val i = Intent(this, RecorderService::class.java)
-                .putExtra("cat", cats[spinner.selectedItemPosition])
+            stopPlayer()
+            val i = Intent(this, RecorderService::class.java).putExtra("cat", "rec")
             ContextCompat.startForegroundService(this, i)
         } catch (e: Throwable) {
             Toast.makeText(this, "Error: " + e.message, Toast.LENGTH_LONG).show()
@@ -260,62 +343,69 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun title(f: File): String {
-        val parts = f.nameWithoutExtension.split("_")
-        val idx = cats.indexOf(parts[0])
-        val label = if (idx >= 0) getString(catRes[idx]) else parts[0]
-        val d = parts.getOrNull(1)
-        val t = parts.getOrNull(2)
-        var whenText = ""
-        if (d != null && t != null && d.length == 8 && t.length == 6) {
-            whenText = "${d.substring(6, 8)}-${d.substring(4, 6)}-${d.substring(0, 4)} " +
-                "${t.substring(0, 2)}:${t.substring(2, 4)}"
-        }
-        val extra = if (parts.size > 3) " (" + parts.drop(3).joinToString(" ") + ")" else ""
-        return "$label  $whenText$extra"
+        val n = f.nameWithoutExtension
+        return n.substringAfter("_", n)
+    }
+
+    private fun sub(f: File): String {
+        val sec = ((f.length() - 44).coerceAtLeast(0) / (RecorderService.RATE * 2L)).toInt()
+        val dur = "%02d:%02d".format(sec / 60, sec % 60)
+        val date = SimpleDateFormat("MM/dd/yyyy", Locale.US).format(Date(f.lastModified()))
+        return "$dur $date"
     }
 
     private fun refresh() {
         list.removeAllViews()
-        val files = RecorderService.dir(this).listFiles()
-            ?.filter { it.extension == "wav" }
-            ?.sortedByDescending { it.lastModified() } ?: emptyList()
+        val files = if (tab == 2) emptyList() else
+            RecorderService.dir(this).listFiles()
+                ?.filter { it.extension == "wav" }
+                ?.sortedByDescending { it.lastModified() } ?: emptyList()
         if (files.isEmpty()) {
             list.addView(TextView(this).apply {
                 text = getString(R.string.no_recordings)
-                setTextColor(0xFF9AA0A6.toInt())
+                setTextColor(gray)
                 setPadding(dp(8), dp(16), dp(8), dp(8))
             })
             return
         }
         for (f in files) {
             val row = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                background = round(0xFF2A2D33.toInt())
-                setPadding(dp(12), dp(10), dp(12), dp(6))
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(20).toFloat()
+                    setColor(cardBg)
+                }
+                setPadding(dp(18), dp(12), dp(8), dp(12))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, dp(6), 0, dp(6)) }
+                ).apply { setMargins(0, 0, 0, dp(8)) }
             }
-            row.addView(TextView(this).apply {
+            val texts = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            texts.addView(TextView(this).apply {
                 text = title(f)
-                textSize = 16f
-                setTextColor(0xFFFFFFFF.toInt())
+                textSize = 17f
+                maxLines = 2
+                setTextColor(Color.WHITE)
             })
-            val acts = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            acts.addView(smallBtn(getString(R.string.play)) { play(f) })
-            acts.addView(smallBtn(getString(R.string.enhance)) { enhance(f) })
-            acts.addView(smallBtn(getString(R.string.delete)) { confirmDelete(f) })
-            row.addView(acts)
+            texts.addView(TextView(this).apply {
+                text = sub(f)
+                textSize = 13f
+                setTextColor(gray)
+            })
+            val isPlaying = playingPath == f.absolutePath
+            val icon = IconView(this, if (isPlaying) IconView.PAUSE else IconView.PLAY).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+                setOnClickListener { play(f) }
+            }
+            row.addView(texts)
+            row.addView(icon)
             list.addView(row)
         }
-    }
-
-    private fun smallBtn(label: String, onClick: () -> Unit) = Button(this).apply {
-        text = label
-        isAllCaps = false
-        textSize = 13f
-        setOnClickListener { onClick() }
     }
 
     private fun stopPlayer() {
@@ -327,56 +417,22 @@ class MainActivity : AppCompatActivity() {
     private fun play(f: File) {
         val same = playingPath == f.absolutePath
         stopPlayer()
-        if (same) return
-        try {
-            player = MediaPlayer().apply {
-                setDataSource(f.absolutePath)
-                prepare()
-                start()
-                setOnCompletionListener { stopPlayer() }
-            }
-            playingPath = f.absolutePath
-        } catch (_: Exception) {
-            stopPlayer()
-        }
-    }
-
-    private fun enhance(f: File) {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.enhance)
-            .setItems(presetRes.map { getString(it) }.toTypedArray()) { _, which ->
-                Toast.makeText(this, R.string.processing, Toast.LENGTH_SHORT).show()
-                Thread {
-                    try {
-                        val out = File(
-                            f.parentFile,
-                            f.nameWithoutExtension + "_" + presetKeys[which] + ".wav"
-                        )
-                        Effects.process(f, out, Effects.byName(presetKeys[which]))
-                        runOnUiThread {
-                            Toast.makeText(this, R.string.done, Toast.LENGTH_SHORT).show()
-                            refresh()
-                        }
-                    } catch (e: Exception) {
-                        runOnUiThread {
-                            Toast.makeText(this, "Error: " + e.message, Toast.LENGTH_LONG).show()
-                        }
+        if (!same) {
+            try {
+                player = MediaPlayer().apply {
+                    setDataSource(f.absolutePath)
+                    prepare()
+                    start()
+                    setOnCompletionListener {
+                        stopPlayer()
+                        refresh()
                     }
-                }.start()
+                }
+                playingPath = f.absolutePath
+            } catch (_: Exception) {
+                stopPlayer()
             }
-            .show()
-    }
-
-    private fun confirmDelete(f: File) {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(title(f))
-            .setPositiveButton(R.string.delete) { _, _ ->
-                if (playingPath == f.absolutePath) stopPlayer()
-                f.delete()
-                refresh()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        }
+        refresh()
     }
 }
