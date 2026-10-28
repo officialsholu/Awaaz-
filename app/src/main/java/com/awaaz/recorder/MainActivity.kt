@@ -367,7 +367,152 @@ class MainActivity : AppCompatActivity() {
 
     private fun selectedFiles(): List<File> = shown.filter { selected.contains(it.absolutePath) }
 
-        private fun toggleRecording() {
+        private fun doDelete() {
+        val files = selectedFiles()
+        if (files.isEmpty()) {
+            toast("Select a recording")
+            return
+        }
+        deleteFiles(files)
+    }
+
+    private fun deleteFiles(files: List<File>) {
+        if (files.isEmpty()) return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete)
+            .setMessage("Delete ${files.size} recording(s)?")
+            .setPositiveButton(R.string.delete) { _, _ ->
+                for (f in files) {
+                    if (playingPath == f.absolutePath) stopPlayer()
+                    if (expanded == f.absolutePath) expanded = null
+                    f.delete()
+                }
+                exitSel()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun doShare() {
+        val files = selectedFiles()
+        if (files.isEmpty()) {
+            toast("Select a recording")
+            return
+        }
+        try {
+            val uris = ArrayList<Uri>()
+            for (f in files) {
+                uris.add(FileProvider.getUriForFile(this, "$packageName.fileprovider", f))
+            }
+            val intent = if (uris.size == 1) {
+                Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, uris[0])
+            } else {
+                Intent(Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(
+                    Intent.EXTRA_STREAM, uris
+                )
+            }
+            intent.type = "audio/*"
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            startActivity(Intent.createChooser(intent, getString(R.string.share)))
+        } catch (e: Throwable) {
+            toast("Error: " + e.message)
+        }
+    }
+
+    private fun doRename() {
+        val files = selectedFiles()
+        if (files.size != 1) {
+            toast("Select one recording")
+            return
+        }
+        renameFile(files[0])
+    }
+
+    private fun renameFile(f: File) {
+        val et = EditText(this)
+        et.setText(title(f))
+        et.setSelection(et.text.length)
+        et.setSingleLine(true)
+        val box = FrameLayout(this)
+        box.setPadding(dp(20), dp(8), dp(20), 0)
+        box.addView(et)
+        AlertDialog.Builder(this)
+            .setTitle("Rename")
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val clean = et.text.toString().trim()
+                    .replace(Regex("[\\\\/:*?\"<>|]"), "")
+                if (clean.isEmpty()) return@setPositiveButton
+                val dest = File(f.parentFile, "rec_$clean.wav")
+                if (dest.exists() && dest.absolutePath != f.absolutePath) {
+                    toast("Name already exists")
+                } else {
+                    if (playingPath == f.absolutePath) stopPlayer()
+                    if (expanded == f.absolutePath) expanded = null
+                    f.renameTo(dest)
+                    exitSel()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showMore(anchor: View) {
+        popup?.dismiss()
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                cornerRadius = dp(16).toFloat()
+                setColor(0xFF262626.toInt())
+            }
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        fun item(label: String, action: () -> Unit) {
+            box.addView(TextView(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                setPadding(dp(20), dp(14), dp(20), dp(14))
+                setOnClickListener {
+                    popup?.dismiss()
+                    action()
+                }
+            })
+        }
+        item("Trim") { toast("Trim: coming soon") }
+        item("Set as ringtone") { toast("Set as ringtone: coming soon") }
+        item("File info") { showInfo() }
+        item("Move to Private space") { toast("Private space: coming soon") }
+        val w = PopupWindow(box, dp(230), LinearLayout.LayoutParams.WRAP_CONTENT, true)
+        w.elevation = dp(8).toFloat()
+        w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        popup = w
+        w.showAtLocation(window.decorView, Gravity.BOTTOM or Gravity.END, dp(12), dp(88))
+    }
+
+    private fun showInfo() {
+        val files = selectedFiles()
+        if (files.size != 1) {
+            toast("Select one recording")
+            return
+        }
+        val f = files[0]
+        val sec = ((f.length() - 44).coerceAtLeast(0) / (RecorderService.RATE * 2L)).toInt()
+        val mb = f.length() / 1048576.0
+        val date = SimpleDateFormat("MM/dd/yyyy HH:mm", Locale.US).format(Date(f.lastModified()))
+        val msg = "Name: " + title(f) +
+            "\nDuration: %02d:%02d".format(sec / 60, sec % 60) +
+            "\nSize: %.2f MB".format(mb) +
+            "\nDate: " + date +
+            "\nPath: " + f.absolutePath
+        AlertDialog.Builder(this)
+            .setTitle("File info")
+            .setMessage(msg)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun toggleRecording() {
         if (RecorderService.recording) {
             startService(
                 Intent(this, RecorderService::class.java).setAction(RecorderService.ACTION_STOP)
