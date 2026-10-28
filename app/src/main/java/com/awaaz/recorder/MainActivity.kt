@@ -175,6 +175,9 @@ class MainActivity : AppCompatActivity() {
                     marginStart = dp(14)
                 }
                 if (k == IconView.SELECT) setOnClickListener { enterSel(null) }
+                if (k == IconView.MORE) setOnClickListener {
+                    startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+                }
             })
         }
         root.addView(normalTop)
