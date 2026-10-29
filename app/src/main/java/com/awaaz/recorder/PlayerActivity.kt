@@ -216,10 +216,27 @@ class PlayerActivity : AppCompatActivity() {
         root.setBackgroundColor(Color.BLACK)
         root.setPadding(dp(16), dp(28), dp(16), dp(20))
 
+        val top = LinearLayout(this)
+        top.orientation = LinearLayout.HORIZONTAL
+        top.gravity = Gravity.CENTER_VERTICAL
         val back = Icon2View(this, Icon2View.BACK)
         back.layoutParams = LinearLayout.LayoutParams(dp(32), dp(32))
         back.setOnClickListener { finish() }
-        root.addView(back)
+        top.addView(back)
+        top.addView(View(this), LinearLayout.LayoutParams(0, 0, 1f))
+        top.addView(tv("Trim", 15f, red).apply {
+            setPadding(dp(10), dp(6), dp(10), dp(6))
+            setOnClickListener {
+                file?.let { Editor.menu(this@PlayerActivity, it, player?.currentPosition ?: 0) }
+            }
+        })
+        top.addView(tv("Save", 15f, red).apply {
+            setPadding(dp(10), dp(6), dp(4), dp(6))
+            setOnClickListener {
+                file?.let { Editor.save(this@PlayerActivity, it) }
+            }
+        })
+        root.addView(top)
 
         val tabs = LinearLayout(this)
         tabs.orientation = LinearLayout.HORIZONTAL
@@ -303,6 +320,15 @@ class PlayerActivity : AppCompatActivity() {
         ctrl.addView(playBtn)
         ctrl.addView(skipBtn("+10", 10000))
         root.addView(ctrl)
+
+        val sRow = LinearLayout(this)
+        sRow.gravity = Gravity.END
+        sRow.setPadding(0, dp(12), dp(4), 0)
+        sRow.addView(IconView(this, IconView.SLIDERS).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
+            setOnClickListener { PlaybackSettings.show(this@PlayerActivity) }
+        })
+        root.addView(sRow)
 
         wave.setTime(0f)
         return root
