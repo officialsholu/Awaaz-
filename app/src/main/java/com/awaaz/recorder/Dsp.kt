@@ -29,7 +29,7 @@ class Dsp(private var p: Preset, private val rate: Int) {
     private var env = 0f
     private var gate = 1f
 
-    private val maxEcho = rate * 700 / 1000
+    private val maxEcho = rate * 1000 / 1000
     private val echoBuf = FloatArray(maxEcho)
     private var echoIdx = 0
     private var echoLp = 0f
