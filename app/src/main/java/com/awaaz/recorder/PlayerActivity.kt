@@ -1,9 +1,9 @@
 package com.awaaz.recorder
 
-import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -29,7 +29,6 @@ class PlayerActivity : AppCompatActivity() {
     private var player: LivePlayer? = null
     private var duration = 0
     private var dragging = false
-    private var leavingForSettings = false
 
     private lateinit var wave: WaveView
     private lateinit var timeBig: TextView
@@ -75,16 +74,9 @@ class PlayerActivity : AppCompatActivity() {
         loadAll(File(path))
     }
 
-    override fun onResume() {
-        super.onResume()
-        leavingForSettings = false
-    }
-
     override fun onPause() {
         super.onPause()
-        if (!leavingForSettings) {
-            try { player?.pause() } catch (_: Exception) {}
-        }
+        try { player?.pause() } catch (_: Exception) {}
     }
 
     override fun onDestroy() {
@@ -207,8 +199,8 @@ class PlayerActivity : AppCompatActivity() {
         val t = tv(label, 13f, Color.WHITE)
         t.gravity = Gravity.CENTER
         t.typeface = medium()
-        t.background = android.graphics.drawable.GradientDrawable().apply {
-            shape = android.graphics.drawable.GradientDrawable.OVAL
+        t.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
             setStroke(dp(2), 0xFF555555.toInt())
         }
         t.layoutParams = LinearLayout.LayoutParams(dp(56), dp(56)).apply {
@@ -224,28 +216,10 @@ class PlayerActivity : AppCompatActivity() {
         root.setBackgroundColor(Color.BLACK)
         root.setPadding(dp(16), dp(28), dp(16), dp(20))
 
-        val top = LinearLayout(this)
-        top.orientation = LinearLayout.HORIZONTAL
-        top.gravity = Gravity.CENTER_VERTICAL
         val back = Icon2View(this, Icon2View.BACK)
         back.layoutParams = LinearLayout.LayoutParams(dp(32), dp(32))
         back.setOnClickListener { finish() }
-        top.addView(back)
-        top.addView(View(this), LinearLayout.LayoutParams(0, 0, 1f))
-
-        val setBtn = IconView(this, IconView.SLIDERS)
-        setBtn.layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
-        setBtn.setOnClickListener {
-            leavingForSettings = true
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
-        top.addView(setBtn)
-
-        val enhBtn = tv("Enhance", 15f, red)
-        enhBtn.setPadding(dp(12), dp(6), dp(4), dp(6))
-        enhBtn.setOnClickListener { file?.let { Enhancer.pick(this, it) } }
-        top.addView(enhBtn)
-        root.addView(top)
+        root.addView(back)
 
         val tabs = LinearLayout(this)
         tabs.orientation = LinearLayout.HORIZONTAL
