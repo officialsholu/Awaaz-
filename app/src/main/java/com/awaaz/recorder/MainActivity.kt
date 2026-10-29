@@ -10,7 +10,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
-import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -66,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     private var shown: List<File> = emptyList()
     private var popup: PopupWindow? = null
 
-    private var player: MediaPlayer? = null
+    private var player: LivePlayer? = null
     private var playingPath: String? = null
     private var expanded: String? = null
     private var seek: SeekBar? = null
@@ -125,6 +124,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(ticker)
+        try { player?.pause() } catch (_: Exception) {}
     }
 
     override fun onDestroy() {
@@ -370,7 +370,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun selectedFiles(): List<File> = shown.filter { selected.contains(it.absolutePath) }
 
-        private fun doDelete() {
+    private fun doDelete() {
         val files = selectedFiles()
         if (files.isEmpty()) {
             toast("Select a recording")
@@ -728,8 +728,8 @@ class MainActivity : AppCompatActivity() {
         }
         acts.addView(barItem(IconView.TRASH, "Delete") { deleteFiles(listOf(f)) })
         acts.addView(barItem(IconView.EDIT, "Rename") { renameFile(f) })
-        acts.addView(barItem(IconView.SLIDERS, "Playback settings") {
-            toast("Playback settings: coming soon")
+        acts.addView(barItem(IconView.SLIDERS, "Echo") {
+            Settings.showEchoMenu(this) { refresh() }
         })
         acts.addView(barItem(IconView.SPEAKER, "Speaker") { toggleSpeaker() })
         panel.addView(acts)
@@ -768,24 +768,22 @@ class MainActivity : AppCompatActivity() {
     private fun play(f: File) {
         val p = player
         if (p != null && playingPath == f.absolutePath) {
-            try {
-                if (p.isPlaying) p.pause() else p.start()
-            } catch (_: Exception) {}
+            if (p.isPlaying) p.pause() else p.start()
             refresh()
             return
         }
         stopPlayer()
         try {
-            val mp = MediaPlayer()
-            mp.setDataSource(f.absolutePath)
-            mp.prepare()
-            mp.setOnCompletionListener {
-                stopPlayer()
-                expanded = null
-                refresh()
+            val lp = LivePlayer(this, f)
+            lp.onDone = {
+                runOnUiThread {
+                    stopPlayer()
+                    expanded = null
+                    refresh()
+                }
             }
-            mp.start()
-            player = mp
+            lp.start()
+            player = lp
             playingPath = f.absolutePath
             expanded = f.absolutePath
         } catch (_: Exception) {
